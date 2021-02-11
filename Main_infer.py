@@ -31,21 +31,16 @@ import time
 
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
-# def Input_dense(X_matrix, RED_FEATURE):
-#     x_data = np.array(X_matrix)
-#     X_batch = []
-#     for i in range(len(x_data)):
-#         x = np.array(x_data[i].todense())
-#         X_batch.append(x)
-#     X_batch = np.array(X_batch)
-#     sizeof_X = X_batch[0].shape[0]*X_batch[0].shape[1]
-#     print(sizeof_X)
-#     # import pdb; pdb.set_trace()
-#     RED_FEATURE = int(RED_FEATURE * sizeof_X)
-#     X_batch = Embedding_matrix(X_batch, encoding_dim = RED_FEATURE)
-#     return X_batch
+def csr2dense(X_train_sparse):
+    x_data = np.array(X_train_sparse)
+    X_batch = []
+    for i in range(len(x_data)):
+        x = np.array(x_data[i].todense())
+        X_batch.append(x)
+    X_batch = np.array(X_batch)
+    return X_batch
 
-def csr_to_tensor(x_data):
+def coo_to_tensor(x_data):
     X_tf_ind_array = []
     X_tf_val_array = []
     for i in range(len(x_data)):
@@ -66,9 +61,9 @@ def embedding_lookup_sparse(X_tf_ind_array, X_tf_val_array, V, W):
         timeconsume += part_2 - part_1
         embedded_matrix.append(tf.reshape(result, [-1]))
     embedded_matrix = np.array(embedded_matrix)
-    print("\tFeature Reduction Time:" + str([round(float(timeconsume), 5)]))
-    print("\tAvg. Feature Reduction Time:" + str([round(float(timeconsume)/len(X_tf_ind_array), 5)]))
-    return embedded_matrix
+    # print("\tFeature Reduction Time:" + str([round(float(timeconsume), 5)]))
+    # print("\tAvg. Feature Reduction Time:" + str([round(float(timeconsume)/len(X_tf_ind_array), 5)]))
+    return embedded_matrix, float(timeconsume)/len(X_tf_ind_array)
 
 
 if __name__ == '__main__':
@@ -81,33 +76,56 @@ if __name__ == '__main__':
     # import pdb; pdb.set_trace()
     # get the inference dataset
     read_start = time.clock()
-    X_train_sparse, y_train, X_test_sparse, y_test = generate_datasets()
+    X_train_sparse, Y_train_data= generate_datasets()
     read_end = time.clock()
     read_timeconsume = read_end - read_start
-    print("\tData Read Time:" + str([round(float(read_timeconsume), 5)]))
-    print("\tAvg. Data Read Time:" + str([round(float(read_timeconsume)/(len(X_train_sparse)+len(X_test_sparse)), 5)]))
+    read_time = float(read_timeconsume)/len(X_train_sparse)
+    # print("\tData Read Time:" + str([round(float(read_timeconsume), 5)]))
+    # print("\tAvg. Data Read Time:" + str([round(float(read_timeconsume)/len(X_train_sparse), 5)]))
 
-    # autoencoder model
-    encoder = tf.keras.models.load_model("./autoencoder")
+    autoencoder_path = "./"+ args.benchmark +"/autoencoder"
+    encoder = tf.keras.models.load_model(autoencoder_path)
     tf.keras.utils.plot_model(
         encoder, to_file=args.save_bayesian_path + 'autoencoder.png', show_shapes=False, show_layer_names=True,
         rankdir='TB', expand_nested=False, dpi=96
     )
-
     # import pdb; pdb.set_trace()
     # get the embedding kernel matrix and do feature reduction on sparse matrix
     W = encoder.layers[0].get_weights()[1] #biases
     V = encoder.layers[0].get_weights()[0] #wights
 
-    # tranfer csr format to tensor format
-    X_tf_ind_array, X_tf_val_array = csr_to_tensor(X_train_sparse)
-    X_tf_ind_array_test, X_tf_val_array_test = csr_to_tensor(X_test_sparse)
-    x_train = embedding_lookup_sparse(X_tf_ind_array, X_tf_val_array, V, W)
-    x_test = embedding_lookup_sparse(X_tf_ind_array_test, X_tf_val_array_test, V, W)
-    # import pdb; pdb.set_trace()
+    if (args.benchmark=='AMG'):
+        X_tf_ind_array, X_tf_val_array = coo_to_tensor(X_train_sparse)
+        X_encoding, fea_time = embedding_lookup_sparse(X_tf_ind_array, X_tf_val_array, V, W)
+    elif (args.benchmark=='CG'):
+        X_train_sparse = csr2dense(X_train_sparse)
+        read_start = time.clock()
+        X_encoding = np.array(np.dot(X_train_sparse,V)+W)
+        read_end = time.clock()
+        fea_timeconsume = read_end - read_start
+        fea_time = float(fea_timeconsume)/len(X_encoding)
+    elif (args.benchmark=='MG' or args.benchmark=='Lagos_fine' or args.benchmark=='Lagos_coarse'):
+        read_start = time.clock()
+        X_encoding = np.array(np.dot(X_train_sparse,V)+W)
+        read_end = time.clock()
+        fea_timeconsume = read_end - read_start
+        fea_time = float(fea_timeconsume)/len(X_encoding)
+
+    split_index = int(math.floor(len(X_encoding)* args.TRAIN_SET_RATIO / 100.0))
+    assert (split_index >= 0 and split_index <= len(X_encoding))
+    x_train = X_encoding[:split_index]
+    x_test = X_encoding[split_index:]
+    y_train = np.array(Y_train_data[:split_index])
+    if (args.benchmark=='CG'):
+        y_test = np.array(Y_train_data[split_index:args.sample_size])
+    else:
+        y_test = np.array(Y_train_data[split_index:])
+
+
     #ml_loss, initial_history, final_history = Model_search(x_train, y_train, x_test, y_test)
     # Autokeras searched model
-    model = tf.keras.models.load_model("./AMG/best_model")
+    model_path =  "./"+ args.benchmark +"/best_model"
+    model = tf.keras.models.load_model(model_path)
     tf.keras.utils.plot_model(
         model, to_file=args.save_bayesian_path + 'model.png', show_shapes=False, show_layer_names=True,
         rankdir='TB', expand_nested=False, dpi=96
@@ -122,15 +140,19 @@ if __name__ == '__main__':
     # tf.profiler.experimental.stop()
     end = time.clock()
     timeconsume = end - start
-    print("\tModel Inference Time:" + str([round(float(timeconsume), 5)]))
-    print("\tAvg. Model Inference Time:" + str([round(float(timeconsume)/len(x_test), 5)]))
+    # print("\tModel Inference Time:" + str([round(float(timeconsume), 5)]))
+    # print("\tAvg. Model Inference Time:" + str([round(float(timeconsume)/len(x_test), 5)]))
+    infer_time = float(timeconsume)/len(x_test)
     loss = np.mean(np.abs(y_predict-y_test))
     print(loss)
 
-    np.savetxt(args.save_bayesian_path + "x_test.txt", np.array(x_test), fmt='%.16f',
-               delimiter=',')
+    time_record = np.hstack([read_time, fea_time, infer_time])
+    # np.savetxt(args.save_bayesian_path + "x_test.txt", np.array(x_test), fmt='%.16f',
+    #            delimiter=',')
     np.savetxt(args.save_bayesian_path + "y_test.txt", np.array(y_test), fmt='%.16f',
                delimiter=',')
     np.savetxt(args.save_bayesian_path + "y_prediction.txt", np.array(y_predict), fmt='%.16f',
+               delimiter=',')
+    np.savetxt(args.save_bayesian_path + "time_record.txt", np.array(time_record), fmt='%.16f',
                delimiter=',')
     # print(y_predict)

@@ -15,11 +15,11 @@ from scipy.sparse import coo_matrix
 np.random.seed(1337)  # for reproducibility
 #from parse_tfrecord import get_parsed_dataset
 
-def get_sparse_matrix(x_data_dir, x_row_dir, x_col_dir):
-    data_list = open(os.path.join(args.dataset_dir, x_data_dir), 'r')
-    row_list = open(os.path.join(args.dataset_dir, x_row_dir), 'r')
-    col_list = open(os.path.join(args.dataset_dir, x_col_dir), 'r')
-
+# This is for CG data fetch
+def get_CG_matrix(data_list, row_list, col_list):
+    # data_list = open(os.path.join(args.dataset_dir, x_data_dir), 'r')
+    # row_list = open(os.path.join(args.dataset_dir, x_row_dir), 'r')
+    # col_list = open(os.path.join(args.dataset_dir, x_col_dir), 'r')
     sparse_x = []
     x_size = 0
     for x_data_str in data_list.readlines():
@@ -32,15 +32,10 @@ def get_sparse_matrix(x_data_dir, x_row_dir, x_col_dir):
         x_size = x_size+1
         if x_size == args.sample_size:
             break
-    split_index = int(math.floor(x_size* args.TRAIN_SET_RATIO / 100.0))
-    assert (split_index >= 0 and split_index <= x_size)
-    train_list = sparse_x[:split_index]
-    test_list = sparse_x[split_index:]
-    return train_list, test_list
+    return sparse_x
 
-def get_sparse_files(A_data_dir, x_data_dir):
-    A_data_dir = os.path.join(args.dataset_dir, A_data_dir)
-    x_data_dir = os.path.join(args.dataset_dir, x_data_dir)
+# This is for AMG data fetch
+def get_AMG_files(A_data_dir, x_data_dir):
     A_data_files= os.listdir(A_data_dir)
     x_data_files= os.listdir(x_data_dir)
     A_data = []
@@ -72,17 +67,39 @@ def get_sparse_files(A_data_dir, x_data_dir):
               x_array_data.append(float(x_ele[1]))
         x_data.append(x_array_data)
     x_data = np.array(x_data)
-    # pdb.set_trace()
-    #split data into training and validation sets
-    split_index = int(math.floor(len(A_data) * args.TRAIN_SET_RATIO / 100.0))
-    assert (split_index >= 0 and split_index <= len(A_data))
-    # pdb.set_trace()
-    train_list = A_data[:split_index]
-    test_list = A_data[split_index:]
-    train_x = x_data[:split_index]
-    test_x  = x_data[split_index:]
-    # pdb.set_trace()
-    return  train_list, test_list, train_x, test_x
+    return  A_data, x_data
+
+# This is for MG data fetch
+def get_MG_matrix(r_int_list, r_sol_list):
+    r_array = []
+    r_sol_array = []
+    for r_int_str in r_int_list.readlines():
+        r_int = r_int_str.split()
+        r_data = np.array([float(i) for i in r_int])
+        r_array.append(r_data)
+
+    for r_sol_str in r_sol_list.readlines():
+        r_sol = r_sol_str.split()
+        r_sol_data = np.array([float(i) for i in r_sol])
+        r_sol_array.append(r_sol_data)
+
+    return r_array, r_sol_array
+
+# This is for Lagos data fetch
+def get_Lagos_files(A_data_dir):
+    A_data_files= os.listdir(A_data_dir)
+    A_data = []
+    for file in A_data_files:
+        A_matrix_data = []
+        if not os.path.isdir(file):
+          data_list = open(os.path.join(A_data_dir,file),'r')
+          for i, A_data_str in enumerate(data_list):
+              if (i>6):
+                  A_ele = float(A_data_str)
+                  A_matrix_data.append(A_ele)
+          A_matrix_data = np.array(A_matrix_data)
+        A_data.append(A_matrix_data)
+    return A_data
 
 def get_the_length_of_dataset(dataset):
     count = 0
@@ -91,14 +108,8 @@ def get_the_length_of_dataset(dataset):
     return count
 
 def load_dataset(list_file):
-    raw_im_list = np.loadtxt(os.path.join(args.dataset_dir, list_file))
-    assert len(raw_im_list) > 0
-    #random.shuffle(raw_im_list)
-    split_index = int(math.floor(len(raw_im_list) * args.TRAIN_SET_RATIO / 100.0))
-    assert (split_index >= 0 and split_index <= len(raw_im_list))
-    train_list = raw_im_list[:split_index]
-    test_list = raw_im_list[split_index:]
-    return  train_list, test_list
+    raw_im_list = np.loadtxt(list_file)
+    return  raw_im_list
 
 def normalize(matrix):
     norm =np.linalg.norm(matrix)
@@ -114,18 +125,48 @@ def normalize(matrix):
     return matrix_x
 
 def generate_datasets():
-    if (args.benchmark=='MG'):
-        train_value, test_value = get_sparse_matrix("cg_csr_value.txt", "cg_csr_row_ind.txt", "cg_csr_col_ind.txt")
-        train_x, test_x = load_dataset("cg_x.txt")
+    if (args.benchmark=='CG'):
+        #CG dataset
+        path = "/home/cc/AutoHPCnet-benchmark/NPB3.3-SER-C/CG/CG_dataset"
+        cg_csr = open(os.path.join(path, "cg_csr_value.txt"), 'r')
+        cg_csr_row = open(os.path.join(path, "cg_csr_row_ind.txt"), 'r')
+        cg_csr_col = open(os.path.join(path, "cg_csr_col_ind.txt"), 'r')
+        cg_x = open(os.path.join(path, "cg_x.txt"), 'r')
+        train_value = get_CG_matrix(cg_csr, cg_csr_row, cg_csr_col)
+        train_x= load_dataset(cg_x)
+
     elif (args.benchmark=='AMG'):
-        train_value, test_value, train_x, test_x  = get_sparse_files("IJ_A", "IJ_x")
-    # if (args.preprocessing==None):
-    #     train_value, test_value = get_sparse_matrix("cg_csr_value.txt", "cg_csr_row_ind.txt", "cg_csr_col_ind.txt")
-    #     train_x, test_x = load_dataset("cg_x.txt")
-    # elif (args.preprocessing=='stad'):
-    #     train_value, test_value = get_sparse_matrix("cg_csr_value_stad.txt", "cg_csr_row_ind.txt", "cg_csr_col_ind.txt")
-    #     train_x, test_x = load_dataset("cg_x_stad.txt")
-    # elif (args.preprocessing=='norm'):
-    #     train_value, test_value = get_sparse_matrix("cg_csr_value_norm.txt", "cg_csr_row_ind.txt", "cg_csr_col_ind.txt")
-    #     train_x, test_x = load_dataset("cg_x_norm.txt")
-    return train_value,  train_x, test_value, test_x
+        path = "/home/cc/AutoHPCnet-benchmark/AMG/test"
+        A_data_dir = os.path.join(path, "IJ_A")
+        x_data_dir = os.path.join(path, "IJ_x")
+        train_value, train_x = get_AMG_files(A_data_dir, x_data_dir)
+
+    elif (args.benchmark=='MG'):
+        path = "/home/cc/AutoHPCnet-benchmark/NPB3.3-SER-C/MG/MG_dataset"
+        r_int_list = open(os.path.join(path, "mg_init_r.txt"), 'r')
+        r_sol_list = open(os.path.join(path, "mg_sol_r.txt"), 'r')
+        train_value, train_x = get_MG_matrix(r_int_list, r_sol_list)
+
+    elif (args.benchmark=='Lagos_fine'):
+        path ="/home/cc/AutoHPCnet-benchmark/Laghos/fine_grained"
+        input_e = np.array(get_Lagos_files(os.path.join(path, "input_e")))
+        input_v = np.array(get_Lagos_files(os.path.join(path, "input_v")))
+        input_x = np.array(get_Lagos_files(os.path.join(path, "input_x")))
+        output_e = np.array(get_Lagos_files(os.path.join(path, "output_e")))
+        output_v = np.array(get_Lagos_files(os.path.join(path, "output_v")))
+        output_x = np.array(get_Lagos_files(os.path.join(path, "output_x")))
+        train_value = np.concatenate((input_e, input_v, input_x), axis=1)
+        train_x = np.concatenate((output_e, output_v, output_x), axis=1)
+
+    elif (args.benchmark=='Lagos_coarse'):
+        path ="/home/cc/AutoHPCnet-benchmark/Laghos/coarse_grained"
+        input_e = np.array(get_Lagos_files(os.path.join(path, "input_e")))
+        input_v = np.array(get_Lagos_files(os.path.join(path, "input_v")))
+        input_x = np.array(get_Lagos_files(os.path.join(path, "input_x")))
+        output_e = np.array(get_Lagos_files(os.path.join(path, "output_e")))
+        output_v = np.array(get_Lagos_files(os.path.join(path, "output_v")))
+        output_x = np.array(get_Lagos_files(os.path.join(path, "output_x")))
+        train_value = np.concatenate((input_e, input_v, input_x), axis=1)
+        train_x = np.concatenate((output_e, output_v, output_x), axis=1)
+
+    return train_value,  train_x

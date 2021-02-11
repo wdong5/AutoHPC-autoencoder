@@ -5,22 +5,20 @@ import numpy
 
 parser = argparse.ArgumentParser(description='Flow-Directed Interpolation Kernel')
 
-parser.add_argument('--matrix_row', type=int, default=1400, help='matrix row size')
-parser.add_argument('--matrix_col', type=int, default=1400, help='matrix col size')
+parser.add_argument('--matrix_row', type=int, default=140, help='matrix row size')
+parser.add_argument('--matrix_col', type=int, default=140, help='matrix col size')
 #parser.add_argument('--dataset_dir',nargs='+', default="/raid/data/ml-powergrid/Auto-keras/org_dataset_100k",help = 'the path of selected datasets')
 #the dataset are generated in PASA ALPHA: ~/LLVM-Tracer/DDDG_gen/NPB-BENCHMARRK
 #parser.add_argument('--dataset_dir',nargs='+', default="/raid/data/ml-powergrid/Auto-keras/matrix_100_dataset_100k",help = 'the path of selected datasets')
 #parser.add_argument('--dataset_dir',nargs='+', default="/raid/data/ml-powergrid/Auto-keras/matrix_cg_size_s_dataset_1k",help = 'the path of selected datasets')
 
-#AMG dataset
-parser.add_argument('--dataset_dir',nargs='+', default="/home/cc/autoHPC-benchmark/AMG/test",help = 'the path of selected datasets')
 
 parser.add_argument('--benchmark',type = str, default='AMG', help ='bencmark type')
 
 #bayesian parameters
 parser.add_argument('--bayesian_initial_samples', type=int, default=50, help='samples for bayesian algorithm')
 parser.add_argument('--bf_samples', type=int, default=50, help='samples for visialize the black box function')
-parser.add_argument('--sample_size', type=int, default=10, help='samples for NN test')
+parser.add_argument('--sample_size', type=int, default=320, help='samples for NN test')
 parser.add_argument('--FR_ratio', type=float, default=1.0, help='the best feature reduction ratio after searching')
 
 #autokeras parameters

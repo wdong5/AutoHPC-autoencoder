@@ -21,18 +21,26 @@ from Visualization_Bayesian import *
 from tensorflow.keras.callbacks import ReduceLROnPlateau
 
 class Autoencoder(Model):
-  def __init__(self, latent_dim):
+  def __init__(self, latent_dim, input_dim):
+
     super(Autoencoder, self).__init__()
     self.latent_dim = latent_dim
+    self.input_dim = input_dim
     self.encoder = tf.keras.Sequential([
       # layers.Dense(latent_dim*2, activation='sigmoid'),
-      layers.Dense(latent_dim,activity_regularizer=regularizers.l1(10e-5)),
+    layers.Dense(latent_dim,activity_regularizer=regularizers.l1(10e-5)),
     ])
-    self.decoder = tf.keras.Sequential([
-      layers.Flatten(),
-      layers.Dense(15625, activation='sigmoid'),
-      layers.Reshape((125, 125))
-    ])
+
+    if (args.benchmark=='CG' or args.benchmark=='AMG'):
+        self.decoder = tf.keras.Sequential([
+        layers.Flatten(),
+        layers.Dense(input_dim*input_dim, activation='sigmoid'),
+        layers.Reshape((input_dim, input_dim))])
+
+    elif (args.benchmark=='MG' or args.benchmark=='Lagos_fine' or args.benchmark=='Lagos_coarse'):
+        self.decoder = tf.keras.Sequential([
+        layers.Dense(input_dim, activation='sigmoid')])
+    
 
   def call(self, x):
     encoded = self.encoder(x)
@@ -47,7 +55,7 @@ def Embedding_matrix(x_data, encoding_dim):
     print(x_data.shape)
     # import pdb; pdb.set_trace()
     latent_dim = encoding_dim
-    autoencoder = Autoencoder(latent_dim)
+    autoencoder = Autoencoder(latent_dim, x_data.shape[1])
     autoencoder.compile(optimizer=tf.keras.optimizers.Adam(lr=0.01), loss=losses.MeanSquaredError())
     reduce_lr = ReduceLROnPlateau(
     monitor='val_loss',

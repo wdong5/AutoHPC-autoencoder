@@ -32,18 +32,13 @@ import time
 
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
-def Input_dense(X_matrix, RED_FEATURE):
-    x_data = np.array(X_matrix)
+def csr2dense(X_train_sparse):
+    x_data = np.array(X_train_sparse)
     X_batch = []
     for i in range(len(x_data)):
         x = np.array(x_data[i].todense())
         X_batch.append(x)
     X_batch = np.array(X_batch)
-    sizeof_X = X_batch[0].shape[1]
-    print(sizeof_X)
-    # import pdb; pdb.set_trace()
-    RED_FEATURE = int(RED_FEATURE * sizeof_X)
-    X_batch = Embedding_matrix(X_batch, encoding_dim = RED_FEATURE)
     return X_batch
 
 def black_box_function(x):
@@ -53,9 +48,23 @@ def black_box_function(x):
     which generates its output values, as unknown.
     """
     # use encoder to reduce features of sparse matrix
-    X_train= Input_dense(X_train_sparse, x)
-    X_test= Input_dense(X_test_sparse, x)
-    # import pdb; pdb.set_trace()
+    if (args.benchmark=='CG' or args.benchmark=='AMG'):
+        X_data = csr2dense(X_train_sparse)
+        sizeof_X = X_data[0].shape[1]
+        RED_FEATURE = int(x * sizeof_X)
+        X_encoding = Embedding_matrix(X_data, encoding_dim = RED_FEATURE)
+    elif (args.benchmark=='MG' or args.benchmark=='Lagos_fine' or args.benchmark=='Lagos_coarse'):
+        X_data = np.array(X_train_sparse)
+        sizeof_X = X_data.shape[1]
+        RED_FEATURE = int(x * sizeof_X)
+        X_encoding = Embedding_matrix(X_data, encoding_dim = RED_FEATURE)
+
+    split_index = int(math.floor(len(X_encoding)* args.TRAIN_SET_RATIO / 100.0))
+    assert (split_index >= 0 and split_index <= len(X_encoding))
+    X_train = X_encoding[:split_index]
+    X_test = X_encoding[split_index:]
+    Y_train = np.array(Y_train_data[:split_index])
+    Y_test = np.array(Y_train_data[split_index:])
     ml_loss = Model_search(X_train, Y_train, X_test, Y_test, x)
     return ml_loss#, initial_history, final_history
 
@@ -67,7 +76,7 @@ if __name__ == '__main__':
             tf.config.experimental.set_memory_growth(gpu, True)
     # get the dataset
     read_start = time.clock()
-    X_train_sparse, Y_train, X_test_sparse, Y_test = generate_datasets()
+    X_train_sparse, Y_train_data = generate_datasets()
     read_end = time.clock()
     read_timeconsume = read_end - read_start
     print("\tData Read Time:" + str([round(float(read_timeconsume), 5)]))
