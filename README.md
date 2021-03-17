@@ -23,24 +23,31 @@ Smart-PGsim generates **multitask-learning (MTL)** neural network (NN) models to
 - GCC (Compiling PyTorch 1.0.0 extension files (.c/.cu) requires gcc = 4.9.1 and nvcc = 10.0 compilers)
 - NVIDIA GPU (We use TESLA V100(Volta) GPUs, but we support compute_50/52/60/61 devices.))
 
-1) install anaconda：
+install anaconda：
+
     $ bash Anaconda3-2020.11-Linux-x86_64.sh
-2) create conda env:
+create conda env:
+
     $ conda create -n autoHPC python=3.7
-3) install tensorflow-gpu
+install tensorflow-gpu
+
     $ conda install -c anaconda tensorflow-gpu==2.3.0
-4) set up environment for autokeras:
+set up environment for autokeras:
+
     $ pip install git+https://github.com/keras-team/keras-tuner.git
     $ pip install autokeras
-5) install library:
+install library:
+
     $ pip install matplotlib
     $ pip install sklearn
     $ pip install pandas  
-6) set up environment for bayesian optimization
+set up environment for bayesian optimization
+
     $ conda install -c conda-forge bayesian-optimization
 
 ### Installation
 Download repository:
+
     $ git clone https://github.com/wdong5/AutoHPC-autoencoder.git
     $ cd  AutoHPC-autoencoder
    
