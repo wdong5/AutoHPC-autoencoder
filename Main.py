@@ -22,6 +22,7 @@ import time
 import pdb
 
 from configuration import args
+from manual_model import Manual_model
 from prepare_data import generate_datasets, normalize
 from Visualization_Bayesian import *
 
@@ -48,12 +49,14 @@ def black_box_function(x):
     which generates its output values, as unknown.
     """
     # use encoder to reduce features of sparse matrix
-    if (args.benchmark=='CG' or args.benchmark=='AMG'):
+    # if (args.benchmark=='CG' or args.benchmark=='AMG'):
+    if (args.benchmark=='CG'):
         X_data = csr2dense(X_train_sparse)
         sizeof_X = X_data[0].shape[1]
         RED_FEATURE = int(x * sizeof_X)
         X_encoding = Embedding_matrix(X_data, encoding_dim = RED_FEATURE)
-    elif (args.benchmark=='MG' or args.benchmark=='Lagos_fine' or args.benchmark=='Lagos_coarse'):
+    # elif (args.benchmark=='MG' or args.benchmark=='Lagos_fine' or args.benchmark=='Lagos_coarse'):
+    elif (args.benchmark=='MG' or args.benchmark=='Lagos_fine' or args.benchmark=='Lagos_coarse' or args.benchmark=='AMG'):
         X_data = np.array(X_train_sparse)
         sizeof_X = X_data.shape[1]
         RED_FEATURE = int(x * sizeof_X)
@@ -65,7 +68,18 @@ def black_box_function(x):
     X_test = X_encoding[split_index:]
     Y_train = np.array(Y_train_data[:split_index])
     Y_test = np.array(Y_train_data[split_index:])
-    ml_loss = Model_search(X_train, Y_train, X_test, Y_test, x)
+    if (args.searchType=='autokeras'):
+        print("******************Search model with Autokeras*******************************")
+        ml_loss = Model_search(X_train, Y_train, X_test, Y_test, x)
+    elif (args.searchType=='manualModel'):
+        print("******************Search model manually with encoding*******************************")
+        ml_loss = Manual_model(X_train, Y_train, X_test, Y_test, x)
+    elif (args.searchType=='fullInput'):
+        print("******************Search model manually with full input*******************************")
+        X_full_train = X_data[:split_index]
+        X_full_test = X_data[split_index:]
+        ml_loss = Manual_model(X_full_train, Y_train, X_full_test, Y_test, x)
+
     return ml_loss#, initial_history, final_history
 
 if __name__ == '__main__':
@@ -84,11 +98,11 @@ if __name__ == '__main__':
     optimizer = BayesianOptimization(
         f=black_box_function,
         pbounds={'x': (0.01, 1)},
-        random_state=1,
+        random_state=20,
     )
     optimizer.maximize(
-        init_points=1,
-        n_iter=0,
+        init_points=20,
+        n_iter=100,
     )
 
     f = open(os.path.join(args.save_bayesian_path, "Loss_log.txt"), "a")

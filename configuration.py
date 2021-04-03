@@ -14,6 +14,7 @@ parser.add_argument('--matrix_col', type=int, default=140, help='matrix col size
 
 
 parser.add_argument('--benchmark',type = str, default='AMG', help ='bencmark type')
+parser.add_argument('--searchType',type = str, default='fullInput', help ='model search type')
 
 #bayesian parameters
 parser.add_argument('--bayesian_initial_samples', type=int, default=50, help='samples for bayesian algorithm')

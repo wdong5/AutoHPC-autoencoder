@@ -31,16 +31,16 @@ class Autoencoder(Model):
     layers.Dense(latent_dim,activity_regularizer=regularizers.l1(10e-5)),
     ])
 
-    if (args.benchmark=='CG' or args.benchmark=='AMG'):
+    if (args.benchmark=='CG'):
         self.decoder = tf.keras.Sequential([
         layers.Flatten(),
         layers.Dense(input_dim*input_dim, activation='sigmoid'),
         layers.Reshape((input_dim, input_dim))])
 
-    elif (args.benchmark=='MG' or args.benchmark=='Lagos_fine' or args.benchmark=='Lagos_coarse'):
+    elif (args.benchmark=='MG' or args.benchmark=='Lagos_fine' or args.benchmark=='Lagos_coarse' or args.benchmark=='AMG'):
         self.decoder = tf.keras.Sequential([
         layers.Dense(input_dim, activation='sigmoid')])
-    
+
 
   def call(self, x):
     encoded = self.encoder(x)

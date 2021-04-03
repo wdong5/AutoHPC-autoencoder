@@ -137,9 +137,12 @@ def generate_datasets():
 
     elif (args.benchmark=='AMG'):
         path = "/home/cc/AutoHPCnet-benchmark/AMG/test"
-        A_data_dir = os.path.join(path, "IJ_A")
-        x_data_dir = os.path.join(path, "IJ_x")
-        train_value, train_x = get_AMG_files(A_data_dir, x_data_dir)
+        # A_data_dir = os.path.join(path, "IJ_A")
+        # x_data_dir = os.path.join(path, "IJ_x")
+        # train_value, train_x = get_AMG_files(A_data_dir, x_data_dir)
+        r_int_list = open(os.path.join(path, "IJ_A_diagonal.txt"), 'r')
+        r_sol_list = open(os.path.join(path, "IJ_x.txt"), 'r')
+        train_value, train_x = get_MG_matrix(r_int_list, r_sol_list)
 
     elif (args.benchmark=='MG'):
         path = "/home/cc/AutoHPCnet-benchmark/NPB3.3-SER-C/MG/MG_dataset"
