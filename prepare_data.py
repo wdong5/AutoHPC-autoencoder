@@ -127,7 +127,7 @@ def normalize(matrix):
 def generate_datasets():
     if (args.benchmark=='CG'):
         #CG dataset
-        path = "/home/cc/AutoHPCnet-benchmark/NPB3.3-SER-C/CG/CG_dataset"
+        path = args.data_dir + "NPB3.3-SER-C/CG/CG_dataset"
         cg_csr = open(os.path.join(path, "cg_csr_value.txt"), 'r')
         cg_csr_row = open(os.path.join(path, "cg_csr_row_ind.txt"), 'r')
         cg_csr_col = open(os.path.join(path, "cg_csr_col_ind.txt"), 'r')
@@ -136,7 +136,7 @@ def generate_datasets():
         train_x= load_dataset(cg_x)
 
     elif (args.benchmark=='AMG'):
-        path = "/home/cc/AutoHPCnet-benchmark/AMG/test"
+        path = args.data_dir + "AMG/test"
         # A_data_dir = os.path.join(path, "IJ_A")
         # x_data_dir = os.path.join(path, "IJ_x")
         # train_value, train_x = get_AMG_files(A_data_dir, x_data_dir)
@@ -145,13 +145,13 @@ def generate_datasets():
         train_value, train_x = get_MG_matrix(r_int_list, r_sol_list)
 
     elif (args.benchmark=='MG'):
-        path = "/home/cc/AutoHPCnet-benchmark/NPB3.3-SER-C/MG/MG_dataset"
+        path = args.data_dir + "NPB3.3-SER-C/MG/MG_dataset"
         r_int_list = open(os.path.join(path, "mg_init_r.txt"), 'r')
         r_sol_list = open(os.path.join(path, "mg_sol_r.txt"), 'r')
         train_value, train_x = get_MG_matrix(r_int_list, r_sol_list)
 
     elif (args.benchmark=='Lagos_fine'):
-        path ="/home/cc/AutoHPCnet-benchmark/Laghos/fine_grained"
+        path = args.data_dir + "Laghos/fine_grained"
         input_e = np.array(get_Lagos_files(os.path.join(path, "input_e")))
         input_v = np.array(get_Lagos_files(os.path.join(path, "input_v")))
         input_x = np.array(get_Lagos_files(os.path.join(path, "input_x")))
@@ -162,7 +162,7 @@ def generate_datasets():
         train_x = np.concatenate((output_e, output_v, output_x), axis=1)
 
     elif (args.benchmark=='Lagos_coarse'):
-        path ="/home/cc/AutoHPCnet-benchmark/Laghos/coarse_grained"
+        path = args.data_dir + "Laghos/coarse_grained"
         input_e = np.array(get_Lagos_files(os.path.join(path, "input_e")))
         input_v = np.array(get_Lagos_files(os.path.join(path, "input_v")))
         input_x = np.array(get_Lagos_files(os.path.join(path, "input_x")))
