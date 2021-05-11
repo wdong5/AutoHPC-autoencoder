@@ -12,7 +12,7 @@ parser.add_argument('--matrix_col', type=int, default=140, help='matrix col size
 #parser.add_argument('--dataset_dir',nargs='+', default="/raid/data/ml-powergrid/Auto-keras/matrix_100_dataset_100k",help = 'the path of selected datasets')
 #parser.add_argument('--dataset_dir',nargs='+', default="/raid/data/ml-powergrid/Auto-keras/matrix_cg_size_s_dataset_1k",help = 'the path of selected datasets')
 
-parser.add_argument('--data_dir,type = str, default='/raid/data/ml-powergrid/AutoHPCnet-benchmark/', help ='dataset source directory')
+parser.add_argument('--data_dir',type = str, default='/raid/data/ml-powergrid/AutoHPCnet-benchmark/', help='dataset source directory')
 
 parser.add_argument('--benchmark',type = str, default='AMG', help ='bencmark type')
 parser.add_argument('--searchType',type = str, default='fullInput', help ='model search type')
